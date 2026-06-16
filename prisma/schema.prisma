@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --- NextAuth ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- App models ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+
+  accounts Account[]
+  sessions Session[]
+
+  properties Property[]
+  templates  Template[]
+
+  createdAt DateTime @default(now())
+}
+
+enum RoadmapStatus {
+  COMPLETED
+  ACTIVE
+  UPCOMING
+}
+
+enum MarketingItemType {
+  MLS
+  SOCIAL
+  VIDEO
+  OPEN_HOUSE
+  REVERSE_PROSPECTING
+  OUTREACH
+  OTHER
+}
+
+model Property {
+  id      String @id @default(cuid())
+  agentId String
+  agent   User   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  address     String
+  price       Int?
+  sellerName  String?
+  sellerGoals String?
+
+  // Property detail fields for richer AI strategy generation
+  homeStyle        String? // "Single Family", "Condo", "Townhome", "Multi-Family", "Land"
+  occupancyStatus  String? // "Vacant", "Owner-Occupied", "Tenant-Occupied"
+  condition        String? // "Move-In Ready", "Needs Cosmetic Updates", "Fixer-Upper"
+  propertyFeatures String? // Free-text: key updates, features, selling points
+
+  // AI-generated rich strategy brief (JSON)
+  strategyBrief Json?
+
+  shareToken String @unique @default(cuid())
+
+  templateSource String?
+
+  roadmapStages    RoadmapStage[]
+  marketingItems   MarketingItem[]
+  visibility       VisibilitySettings?
+  performanceStats PerformanceStat[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RoadmapStage {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  name   String
+  order  Int
+  status RoadmapStatus @default(UPCOMING)
+}
+
+model MarketingItem {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  type      MarketingItemType
+  objective String
+  status    String
+  reasoning String?
+  results   String?
+
+  visibleToSeller Boolean @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+model VisibilitySettings {
+  id         String   @id @default(cuid())
+  propertyId String   @unique
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  showRoadmap       Boolean @default(true)
+  showMarketingPlan Boolean @default(true)
+  showReasoning     Boolean @default(true)
+  showAnalytics     Boolean @default(false)
+}
+
+model PerformanceStat {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  label String
+  value Int
+  date  DateTime @default(now())
+  note  String?
+
+  createdAt DateTime @default(now())
+}
+
+model Template {
+  id      String  @id @default(cuid())
+  agentId String?
+  agent   User?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  name           String
+  roadmapStages  Json
+  marketingItems Json
+
+  createdAt DateTime @default(now())
+}
