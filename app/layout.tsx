@@ -29,7 +29,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col">
-        <SessionProvider>{children}</SessionProvider>
+        <div className="animated-bg">
+          <div className="orb-3" />
+        </div>
+        <div className="relative z-10 flex flex-col min-h-full">
+          <SessionProvider>{children}</SessionProvider>
+        </div>
       </body>
     </html>
   );
