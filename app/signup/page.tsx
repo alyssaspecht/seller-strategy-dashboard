@@ -18,15 +18,23 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+    } catch {
+      setError("Could not reach the server. Please try again.");
+      setLoading(false);
+      return;
+    }
 
     if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "Something went wrong");
+      let msg = "Something went wrong. Please try again.";
+      try { const d = await res.json(); msg = d.error ?? msg; } catch {}
+      setError(msg);
       setLoading(false);
       return;
     }
@@ -35,7 +43,7 @@ export default function SignupPage() {
     setLoading(false);
 
     if (signInRes?.error) {
-      router.push("/login");
+      setError("Account created but sign-in failed — please log in manually.");
       return;
     }
 

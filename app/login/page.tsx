@@ -17,16 +17,19 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    let res;
+    try {
+      res = await signIn("credentials", { email, password, redirect: false });
+    } catch {
+      setError("Could not reach the server. Please try again.");
+      setLoading(false);
+      return;
+    }
 
     setLoading(false);
 
     if (res?.error) {
-      setError("Invalid email or password");
+      setError("Invalid email or password. If this is your first time on the new site, try creating a new account.");
       return;
     }
 
